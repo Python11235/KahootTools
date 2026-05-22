@@ -15,6 +15,7 @@ class KahootSpammer:
         self.successful_joins = 0
         self.failed_joins = 0
         self.lock = threading.Lock()
+        self.bots = []
 
     def joinHandle(self):
         with self.lock:
@@ -29,6 +30,7 @@ class KahootSpammer:
         client.on("joined", self.joinHandle)
         try:
             await client.join_game(game_pin=self.gamepin, username=username)
+            self.bots.append(client)
         except Exception as e:
             with self.lock:
                 self.failed_joins += 1
@@ -58,15 +60,19 @@ if __name__ == '__main__':
     print(f"\nStarting {Client.botamount} bots...")
     print("-" * 40)
 
-    threads = []
     for x in range(int(Client.botamount)):
-        thread = threading.Thread(target=Client.joingame)
-        threads.append(thread)
+        thread = threading.Thread(target=Client.joingame, daemon=True)
         thread.start()
         time.sleep(0.3)
 
-    for thread in threads:
-        thread.join()
-
     print("-" * 40)
-    print(f"Done! Joined: {Client.successful_joins} | Failed: {Client.failed_joins}")
+    print(f"All bots launched! Joined: {Client.successful_joins} | Failed: {Client.failed_joins}")
+    print("Bots will stay connected until you close this window.")
+    print("Press Ctrl+C to stop.")
+
+    try:
+        while True:
+            time.sleep(1)
+    except KeyboardInterrupt:
+        print("\nStopping all bots...")
+        print(f"Final count - Joined: {Client.successful_joins} | Failed: {Client.failed_joins}")
