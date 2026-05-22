@@ -4,11 +4,12 @@ import time
 import threading
 import asyncio
 from kahoot import KahootClient
+from kahoot.packets.server.question_start import QuestionStartPacket
 
 
 class KahootSpammer:
     def __init__(self):
-        print('KahootTools - Remastered by Nightmrs - Originally made by xeny')
+        print(r'KahootTools - Remastered by Python/er - Originally made by xeny')
         self.gamepin = int(input('PIN: '))
         self.botamount = input('Amount of bots (max 2000): ')
         self.custom_user = input('Enter desired username (5 or less chars) (leave blank if none): ')
@@ -28,6 +29,23 @@ class KahootSpammer:
     async def _join_game(self, username):
         client = KahootClient()
         client.on("joined", self.joinHandle)
+
+        # Handler to submit a random answer for each question
+        async def answer_random(packet: QuestionStartPacket):
+            # Determine the number of choices; using getattr for safety as the exact attribute may vary.
+            num_choices = getattr(packet, 'number_of_choices', 4)
+            # Pick a random answer index (0 to num_choices-1)
+            choice = random.randint(0, num_choices - 1)
+            try:
+                # Using 'send_answer' as it is the logical method name.
+                # The exact name may be different (e.g., 'send_response').
+                await client.send_answer(choice)
+            except Exception as e:
+                # Silently fail to keep the bot running if answer submission fails
+                pass
+
+        client.on("question_start", answer_random)
+
         try:
             await client.join_game(game_pin=self.gamepin, username=username)
             self.bots.append(client)
@@ -67,7 +85,7 @@ if __name__ == '__main__':
 
     print("-" * 40)
     print(f"All bots launched! Joined: {Client.successful_joins} | Failed: {Client.failed_joins}")
-    print("Bots will stay connected until you close this window.")
+    print("Bots will stay connected and answer questions randomly.")
     print("Press Ctrl+C to stop.")
 
     try:
