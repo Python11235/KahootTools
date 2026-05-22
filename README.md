@@ -1,8 +1,8 @@
 # KahootTools
-# it brokey :sob:
+# It now works lol😸
 basic kahoot spammer, decently fast too
 
-- simple asf 
+- mid 
 - its open source
 
 enjoy?!?!?
