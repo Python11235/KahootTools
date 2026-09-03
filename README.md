@@ -22,3 +22,12 @@ A fast, asynchronous Kahoot bot spammer that allows you to join multiple bots to
    ```bash
    git clone https://github.com/your-username/KahootTools.git
    cd KahootTools
+
+2. Enter the folder and install reqirements:
+   ```bash
+   cd .../downloads/KahootTools-master
+   pip install -r requirements.txt #Preferably do this after
+
+3. Run the main.py:
+   ```bash
+   python main.py
