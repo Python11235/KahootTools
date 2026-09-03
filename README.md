@@ -4,12 +4,12 @@ A fast, asynchronous Kahoot bot spammer that allows you to join multiple bots to
 
 ## Features
 
-- 🚀 **High-performance joining** – Uses a single `asyncio` event loop to launch hundreds of bots concurrently.
-- ⚙️ **Configurable rate limit** – Set the maximum number of bots joining per second (0 for unlimited).
-- 🎭 **Custom usernames** – Provide a prefix (up to 5 chars) or leave blank for the default `xeny`.
-- 🎲 **Random answering** – Each bot automatically picks a random answer for every question.
-- 🛑 **Simple stop mechanism** – Press `S` (without Enter) to gracefully stop all bots and exit.
-- 🧵 **Lightweight** – No thread-per-bot overhead; uses async tasks for scalability.
+-  **High-performance joining** – Uses a single `asyncio` event loop to launch hundreds of bots concurrently.
+-  **Configurable rate limit** – Set the maximum number of bots joining per second (0 for unlimited).
+-  **Custom usernames** – Provide a prefix (up to 5 chars) or leave blank for the default `xeny`.
+-  **Random answering** – Each bot automatically picks a random answer for every question.
+-  **Simple stop mechanism** – Press `S` (without Enter) to gracefully stop all bots and exit.
+-  **Lightweight** – No thread-per-bot overhead; uses async tasks for scalability.
 
 ## Requirements
 
