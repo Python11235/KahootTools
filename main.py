@@ -18,7 +18,7 @@ class KahootSpammer:
     def __init__(self):
         print(r'KahootTools - Remastered by Python/er - Originally made by xeny')
         self.gamepin = int(input('PIN: '))
-        self.botamount = input('Amount of bots (max 2000): ')
+        self.botamount = int(input('Amount of bots (max 2000): '))
         self.custom_user = input('Enter desired username (5 or less chars) (leave blank if none): ')
 
         rate_input = input('Max bots per second (default 10, 0 = unlimited): ').strip()
@@ -30,6 +30,7 @@ class KahootSpammer:
         self.tasks = []               # asyncio tasks
         self.semaphore = asyncio.Semaphore(500)  # connection limit
         self._failure_counter = 0     # throttle failure prints
+        self._launch_start_time = None
 
     def randName(self, length):
         return ''.join(random.choice(string.ascii_letters) for _ in range(length))
@@ -44,11 +45,23 @@ class KahootSpammer:
                 except Exception:
                     pass
 
+    def _print_progress(self, force=False):
+        """Print real-time progress during bot launching."""
+        if not self._launch_start_time:
+            return
+        elapsed = time.time() - self._launch_start_time
+        total = self.successful_joins + self.failed_joins
+        if total % 50 == 0 or force:
+            rate = total / elapsed if elapsed > 0 else 0
+            print(f"\r[{total}/{self.botamount}] Joined: {self.successful_joins} | Failed: {self.failed_joins} | Rate: {rate:.1f}/s", end='', flush=True)
+
     async def _join_game(self, username):
+        """Join a single bot to the game and handle its lifecycle."""
         client = KahootClient()
         client.on("joined", self._on_joined)
 
         async def answer_random(packet: QuestionStartPacket):
+            """Automatically answer random choice when question starts."""
             num_choices = getattr(packet, 'number_of_choices', 4)
             choice = random.randint(0, num_choices - 1)
             try:
@@ -84,7 +97,9 @@ class KahootSpammer:
             await self._close_client_session(client)
 
     def _on_joined(self):
+        """Callback when a bot successfully joins."""
         self.successful_joins += 1
+        self._print_progress()
 
     async def _listen_for_stop(self, stop_event):
         """Wait for user to press 's' (no Enter required) and set stop_event."""
@@ -92,13 +107,17 @@ class KahootSpammer:
             # Fallback: require Enter if msvcrt not available (e.g., non-Windows)
             loop = asyncio.get_event_loop()
             while not stop_event.is_set():
-                user_input = await loop.run_in_executor(None, sys.stdin.readline)
-                if user_input.strip().lower() == 's':
-                    stop_event.set()
+                try:
+                    user_input = await loop.run_in_executor(None, sys.stdin.readline)
+                    if user_input.strip().lower() == 's':
+                        stop_event.set()
+                        break
+                except Exception:
                     break
             return
 
         def keypress_listener():
+            """Listen for 's' keypress without blocking."""
             while not stop_event.is_set():
                 if msvcrt.kbhit():
                     ch = msvcrt.getch()
@@ -108,13 +127,17 @@ class KahootSpammer:
                 time.sleep(0.05)  # prevent CPU spinning
 
         # Run the blocking listener in a thread
-        await asyncio.to_thread(keypress_listener)
+        try:
+            await asyncio.to_thread(keypress_listener)
+        except Exception:
+            pass
 
     async def start_all_bots(self):
-        total = int(self.botamount)
+        """Launch all bots with rate limiting and graceful shutdown."""
+        total = self.botamount
         print(f"\nStarting {total} bots (rate limit: {self.max_bots_per_second if self.max_bots_per_second > 0 else 'unlimited'} per second)...")
         print("-" * 40)
-        print("** Press 's' (no Enter) at any time to stop **")
+        print("** Press 's' (no Enter) at any time to stop **\n")
 
         # Set a custom exception handler to suppress expected errors during shutdown
         loop = asyncio.get_running_loop()
@@ -136,6 +159,7 @@ class KahootSpammer:
         listener_task = asyncio.create_task(self._listen_for_stop(stop_event))
 
         interval = 1.0 / self.max_bots_per_second if self.max_bots_per_second > 0 else 0.0
+        self._launch_start_time = time.time()
 
         try:
             for i in range(total):
@@ -154,11 +178,16 @@ class KahootSpammer:
             if not stop_event.is_set():
                 await stop_event.wait()
 
-            print("\nStop command received. Shutting down...")
+            print("\n\nStop command received. Shutting down...")
 
         finally:
             # Cancel listener and all bot tasks
-            listener_task.cancel()
+            try:
+                listener_task.cancel()
+                await listener_task
+            except (asyncio.CancelledError, Exception):
+                pass
+
             for task in self.tasks:
                 task.cancel()
 
@@ -174,7 +203,7 @@ class KahootSpammer:
 
             self.tasks.clear()
             self.bots.clear()
-            print(f"All bots stopped. Final count - Joined: {self.successful_joins} | Failed: {self.failed_joins}")
+            print(f"\nAll bots stopped. Final count - Joined: {self.successful_joins} | Failed: {self.failed_joins}")
 
 
 if __name__ == '__main__':
